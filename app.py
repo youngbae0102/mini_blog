@@ -420,9 +420,11 @@ def index():
                         p.id, 
                         p.title, 
                         p.created_at,
+                        u.username as author,
                         COALESCE(likes.count, 0) as like_count,
                         COALESCE(dislikes.count, 0) as dislike_count
                     FROM posts p
+                    JOIN users u ON p.user_id = u.id
                     LEFT JOIN (
                         SELECT post_id, COUNT(*) as count 
                         FROM post_reactions 
@@ -451,9 +453,11 @@ def index():
                         p.id, 
                         p.title, 
                         p.created_at,
+                        u.username as author,
                         COALESCE(likes.count, 0) as like_count,
                         COALESCE(dislikes.count, 0) as dislike_count
                     FROM posts p
+                    JOIN users u ON p.user_id = u.id
                     LEFT JOIN (
                         SELECT post_id, COUNT(*) as count 
                         FROM post_reactions 
@@ -489,7 +493,12 @@ def post(post_id):
     conn = get_db_connection()
     with conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM posts WHERE id = %s", (post_id,))
+            cursor.execute("""
+                SELECT p.*, u.username as author 
+                FROM posts p 
+                JOIN users u ON p.user_id = u.id 
+                WHERE p.id = %s
+            """, (post_id,))
             post = cursor.fetchone()
     if post is None:
         abort(404)

@@ -508,6 +508,27 @@ body {
     gap: 1rem;
 }
 
+.post-meta .author {
+    font-weight: 500;
+    color: #333;
+}
+
+.post-meta .author a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.post-meta .author a:hover {
+    color: #5a6fd8;
+    text-decoration: underline;
+}
+
+.post-meta .date {
+    color: #666;
+    font-size: 0.9rem;
+}
+
 .post-reactions {
     display: flex;
     gap: 0.5rem;

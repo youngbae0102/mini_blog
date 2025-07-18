@@ -27,7 +27,8 @@
         <div class="card post-card">
             <h3><a href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a></h3>
             <div class="post-meta">
-                {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+                <span class="author">작성자: <a href="{{ url_for('profile', username=post.author) }}">{{ post.author }}</a></span>
+                <span class="date">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
                 <div class="post-reactions">
                     <span class="reaction-count">좋아요 {{ post.like_count }}</span>
                     <span class="reaction-count">싫어요 {{ post.dislike_count }}</span>

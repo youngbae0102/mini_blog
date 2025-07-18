@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile_user.username }}님의 프로필 - Mini Blog{% endblock %}
+
+{% block content %}
+<!-- 프로필 헤더 -->
+<div class="profile-header">
+    <div class="profile-info">
+        <div class="profile-avatar">
+            <div class="avatar-placeholder">{{ profile_user.username[0].upper() }}</div>
+        </div>
+        <div class="profile-details">
+            <h1 class="profile-username">{{ profile_user.username }}</h1>
+            {% if profile_user.created_at %}
+                <p class="profile-joined">가입일: {{ profile_user.created_at.strftime('%Y년 %m월 %d일') }}</p>
+            {% endif %}
+            {% if profile_user.bio %}
+                <p class="profile-bio">{{ profile_user.bio }}</p>
+            {% else %}
+                <p class="profile-bio text-muted">아직 자기소개가 없습니다.</p>
+            {% endif %}
+        </div>
+        {% if current_user.is_authenticated and current_user.id == profile_user.id %}
+            <div class="profile-actions">
+                <a href="{{ url_for('edit_profile', username=profile_user.username) }}" class="btn btn-secondary">프로필 수정</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 프로필 통계 -->
+<div class="profile-stats">
+    <div class="stat-item">
+        <span class="stat-number">{{ post_count }}</span>
+        <span class="stat-label">게시글</span>
+    </div>
+</div>
+
+<!-- 사용자의 게시글 목록 -->
+<div class="profile-posts">
+    <h2 class="section-title">{{ profile_user.username }}님의 게시글</h2>
+    
+    {% if posts %}
+        {% for post in posts %}
+            <div class="card post-card">
+                <h3><a href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a></h3>
+                <div class="post-meta">
+                    {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    <div class="post-reactions">
+                        <span class="reaction-count">좋아요 {{ post.like_count }}</span>
+                        <span class="reaction-count">싫어요 {{ post.dislike_count }}</span>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-posts">
+            <h3>아직 작성한 게시글이 없습니다</h3>
+            {% if current_user.is_authenticated and current_user.id == profile_user.id %}
+                <p>첫 번째 게시글을 작성해보세요!</p>
+                <a href="{{ url_for('write') }}" class="btn">글 쓰기</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<div class="text-center mt-2">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">홈으로 돌아가기</a>
+</div>
+{% endblock %}

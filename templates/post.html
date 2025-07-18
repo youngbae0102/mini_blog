@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - Mini Blog{% endblock %}
+
+{% block content %}
+<!-- 게시글 내용 -->
+<div class="post-content">
+    <h1 class="post-title">{{ post.title }}</h1>
+    <div class="post-meta">
+        {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+    </div>
+    <div class="post-text">
+        {{ post.content|replace('\n', '<br>')|safe }}
+    </div>
+    
+    <!-- 첨부파일 섹션 -->
+    {% if uploads %}
+        <div class="attachments-section">
+            <h3 class="attachments-title">첨부파일</h3>
+            <div class="attachments-list">
+                {% for upload in uploads %}
+                    <div class="attachment-item">
+                        <span class="attachment-name">{{ upload.original_filename }}</span>
+                        <span class="attachment-size">({{ "%.1f"|format(upload.file_size/1024) }}KB)</span>
+                        <div class="attachment-actions">
+                            {% if upload.mime_type.startswith('image/') %}
+                                <a href="{{ url_for('view_file', upload_id=upload.id) }}" class="btn btn-small" target="_blank">보기</a>
+                            {% endif %}
+                            <a href="{{ url_for('download_file', upload_id=upload.id) }}" class="btn btn-small">다운로드</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- 좋아요/싫어요 섹션 -->
+    <div class="reactions-section">
+        {% if current_user.is_authenticated %}
+            <div class="reaction-buttons">
+                <button onclick="toggleReaction('like')" 
+                        class="reaction-btn {{ 'active' if user_reaction == 'like' else '' }}" 
+                        id="like-btn">
+                    좋아요 <span id="like-count">{{ reaction_counts.like }}</span>
+                </button>
+                <button onclick="toggleReaction('dislike')" 
+                        class="reaction-btn {{ 'active' if user_reaction == 'dislike' else '' }}" 
+                        id="dislike-btn">
+                    싫어요 <span id="dislike-count">{{ reaction_counts.dislike }}</span>
+                </button>
+            </div>
+        {% else %}
+            <div class="reaction-display">
+                <span class="reaction-count">좋아요 {{ reaction_counts.like }}</span>
+                <span class="reaction-count">싫어요 {{ reaction_counts.dislike }}</span>
+                <p class="text-muted">
+                    <a href="{{ url_for('login') }}">로그인</a>하시면 좋아요/싫어요를 누를 수 있습니다.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if current_user.is_authenticated %}
+        <div class="post-actions">
+            <a href="{{ url_for('edit', post_id=post.id) }}" class="btn btn-secondary">수정</a>
+            <form action="{{ url_for('delete', post_id=post.id) }}" method="POST" style="display:inline;">
+                <button type="submit" onclick="return confirm('정말 삭제할까요?');" class="btn btn-danger">삭제</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+
+<!-- 댓글 섹션 -->
+<div class="comments-section">
+    <h2 class="comments-title">댓글 ({{ comments|length }})</h2>
+    
+    {% if current_user.is_authenticated %}
+        <!-- 댓글 작성 폼 -->
+        <div class="comment-form">
+            <form action="{{ url_for('add_comment', post_id=post.id) }}" method="POST">
+                <div class="form-group">
+                    <textarea name="content" placeholder="댓글을 입력하세요..." rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn">댓글 작성</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="comment-form">
+            <p class="text-center text-muted">
+                <a href="{{ url_for('login') }}" class="btn">로그인</a>하시면 댓글을 작성할 수 있습니다.
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- 댓글 목록 -->
+    {% if comments %}
+        {% for comment in comments %}
+            <div class="comment">
+                <div class="comment-header">
+                    <span class="comment-author">
+                        <a href="{{ url_for('profile', username=comment.username) }}" class="user-link">{{ comment.username }}</a>
+                    </span>
+                    <span class="comment-date">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+                <div class="comment-content">
+                    {{ comment.content|replace('\n', '<br>')|safe }}
+                </div>
+                {% if current_user.is_authenticated and current_user.id == comment.user_id %}
+                    <div class="comment-actions">
+                        <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" onclick="return confirm('댓글을 삭제하시겠습니까?');" class="btn btn-danger btn-small">삭제</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center text-muted">
+            <p>아직 댓글이 없습니다.</p>
+            {% if current_user.is_authenticated %}
+                <p>첫 번째 댓글을 작성해보세요!</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<div class="text-center mt-2">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">글 목록으로 돌아가기</a>
+</div>
+
+<script>
+async function toggleReaction(reactionType) {
+    try {
+        const response = await fetch(`/api/post/{{ post.id }}/reaction`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reaction_type: reactionType
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 버튼 상태 업데이트
+            const likeBtn = document.getElementById('like-btn');
+            const dislikeBtn = document.getElementById('dislike-btn');
+            const likeCount = document.getElementById('like-count');
+            const dislikeCount = document.getElementById('dislike-count');
+
+            // 카운트 업데이트
+            likeCount.textContent = data.reaction_counts.like;
+            dislikeCount.textContent = data.reaction_counts.dislike;
+
+            // 버튼 활성화 상태 업데이트
+            likeBtn.classList.remove('active');
+            dislikeBtn.classList.remove('active');
+
+            if (data.user_reaction === 'like') {
+                likeBtn.classList.add('active');
+            } else if (data.user_reaction === 'dislike') {
+                dislikeBtn.classList.add('active');
+            }
+
+            // 성공 메시지 표시 (선택사항)
+            if (data.action === 'added') {
+                showMessage(`${reactionType === 'like' ? '좋아요' : '싫어요'} 반응을 추가했습니다!`);
+            } else if (data.action === 'removed') {
+                showMessage('반응을 취소했습니다.');
+            } else if (data.action === 'updated') {
+                showMessage(`${reactionType === 'like' ? '좋아요' : '싫어요'} 반응을 변경했습니다!`);
+            }
+        } else {
+            throw new Error(data.error || '오류가 발생했습니다.');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('오류가 발생했습니다: ' + error.message);
+    }
+}
+
+function showMessage(message) {
+    // 간단한 메시지 표시 (3초 후 자동 사라짐)
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = message;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    `;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        document.body.removeChild(messageDiv);
+    }, 3000);
+}
+</script>
+{% endblock %}
+

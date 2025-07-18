@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}프로필 수정 - Mini Blog{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2 class="text-center mb-2">프로필 수정</h2>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">사용자명</label>
+            <input type="text" id="username" value="{{ profile_user.username }}" disabled class="form-control">
+            <small class="form-text">사용자명은 변경할 수 없습니다.</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="bio">자기소개</label>
+            <textarea id="bio" name="bio" placeholder="자신을 소개해주세요..." rows="5" maxlength="500">{{ profile_user.bio or '' }}</textarea>
+            <small class="form-text">최대 500자까지 입력할 수 있습니다.</small>
+        </div>
+        
+        <div class="d-flex justify-between">
+            <a href="{{ url_for('profile', username=profile_user.username) }}" class="btn btn-secondary">취소</a>
+            <button type="submit" class="btn">프로필 저장</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// 글자 수 카운터 추가
+document.addEventListener('DOMContentLoaded', function() {
+    const bioTextarea = document.getElementById('bio');
+    const maxLength = 500;
+    
+    // 글자 수 표시 요소 생성
+    const charCount = document.createElement('div');
+    charCount.className = 'char-count';
+    charCount.style.cssText = 'text-align: right; font-size: 0.8rem; color: #666; margin-top: 0.25rem;';
+    
+    function updateCharCount() {
+        const currentLength = bioTextarea.value.length;
+        charCount.textContent = currentLength + '/' + maxLength;
+        
+        if (currentLength >= maxLength * 0.9) {
+            charCount.style.color = '#ff6b6b';
+        } else {
+            charCount.style.color = '#666';
+        }
+    }
+    
+    bioTextarea.parentNode.appendChild(charCount);
+    bioTextarea.addEventListener('input', updateCharCount);
+    updateCharCount(); // 초기 카운트 설정
+});
+</script>
+{% endblock %}
